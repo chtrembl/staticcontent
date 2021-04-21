@@ -1,578 +1,70 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-    "contentVersion": "1.0.0.0",
-    "parameters": {
-        "sites_tremblaypetstore_name": {
-            "defaultValue": "tremblaypetstore",
-            "type": "String"
-        },
-        "serverfarms_tremblaypetstoreasp_name": {
-            "defaultValue": "tremblaypetstoreasp",
-            "type": "String"
-        },
-        "components_tremblaypetstoreai_name": {
-            "defaultValue": "tremblaypetstoreai",
-            "type": "String"
-        },
-        "registries_tremblaypetstorecr_name": {
-            "defaultValue": "tremblaypetstorecr",
-            "type": "String"
-        },
-        "smartdetectoralertrules_failure_anomalies___tremblaypetstoreai_name": {
-            "defaultValue": "failure anomalies - tremblaypetstoreai",
-            "type": "String"
-        },
-        "actiongroups_application_insights_smart_detection_externalid": {
-            "defaultValue": "/subscriptions/6f6e705b-038d-425c-ae32-b1c2c3dd885c/resourceGroups/petstorerg/providers/microsoft.insights/actiongroups/application insights smart detection",
-            "type": "String"
-        },
-        "workspaces_defaultworkspace_6f6e705b_038d_425c_ae32_b1c2c3dd885c_eus_externalid": {
-            "defaultValue": "/subscriptions/6f6e705b-038d-425c-ae32-b1c2c3dd885c/resourceGroups/defaultresourcegroup-eus/providers/microsoft.operationalinsights/workspaces/defaultworkspace-6f6e705b-038d-425c-ae32-b1c2c3dd885c-eus",
-            "type": "String"
-        }
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "webAppName": {
+      "type": "string",
+      "defaultValue": "AzureLinuxApp",
+      "metadata": {
+        "description": "Base name of the resource such as web app name and app service plan "
+      },
+      "minLength": 2
     },
-    "variables": {},
-    "resources": [
-        {
-            "type": "Microsoft.ContainerRegistry/registries",
-            "apiVersion": "2020-11-01-preview",
-            "name": "[parameters('registries_tremblaypetstorecr_name')]",
-            "location": "eastus",
-            "sku": {
-                "name": "Standard",
-                "tier": "Standard"
-            },
-            "properties": {
-                "adminUserEnabled": false,
-                "policies": {
-                    "quarantinePolicy": {
-                        "status": "disabled"
-                    },
-                    "trustPolicy": {
-                        "type": "Notary",
-                        "status": "disabled"
-                    },
-                    "retentionPolicy": {
-                        "days": 7,
-                        "status": "disabled"
-                    }
-                },
-                "encryption": {
-                    "status": "disabled"
-                },
-                "dataEndpointEnabled": false,
-                "publicNetworkAccess": "Enabled",
-                "networkRuleBypassOptions": "AzureServices",
-                "zoneRedundancy": "Disabled",
-                "anonymousPullEnabled": false
-            }
-        },
-        {
-            "type": "microsoft.insights/components",
-            "apiVersion": "2020-02-02-preview",
-            "name": "[parameters('components_tremblaypetstoreai_name')]",
-            "location": "eastus",
-            "kind": "web",
-            "properties": {
-                "Application_Type": "web",
-                "Flow_Type": "Redfield",
-                "Request_Source": "IbizaAIExtension",
-                "WorkspaceResourceId": "[parameters('workspaces_defaultworkspace_6f6e705b_038d_425c_ae32_b1c2c3dd885c_eus_externalid')]",
-                "IngestionMode": "LogAnalytics",
-                "publicNetworkAccessForIngestion": "Enabled",
-                "publicNetworkAccessForQuery": "Enabled"
-            }
-        },
-        {
-            "type": "Microsoft.Web/serverfarms",
-            "apiVersion": "2018-02-01",
-            "name": "[parameters('serverfarms_tremblaypetstoreasp_name')]",
-            "location": "East US",
-            "sku": {
-                "name": "P1v2",
-                "tier": "PremiumV2",
-                "size": "P1v2",
-                "family": "Pv2",
-                "capacity": 1
-            },
-            "kind": "linux",
-            "properties": {
-                "perSiteScaling": false,
-                "maximumElasticWorkerCount": 1,
-                "isSpot": false,
-                "reserved": true,
-                "isXenon": false,
-                "hyperV": false,
-                "targetWorkerCount": 0,
-                "targetWorkerSizeId": 0
-            }
-        },
-        {
-            "type": "microsoft.alertsmanagement/smartdetectoralertrules",
-            "apiVersion": "2019-06-01",
-            "name": "[parameters('smartdetectoralertrules_failure_anomalies___tremblaypetstoreai_name')]",
-            "location": "global",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "description": "Failure Anomalies notifies you of an unusual rise in the rate of failed HTTP requests or dependency calls.",
-                "state": "Enabled",
-                "severity": "Sev3",
-                "frequency": "PT1M",
-                "detector": {
-                    "id": "FailureAnomaliesDetector",
-                    "name": "Failure Anomalies",
-                    "description": "Detects if your application experiences an abnormal rise in the rate of HTTP requests or dependency calls that are reported as failed. The anomaly detection uses machine learning algorithms and occurs in near real time, therefore there's no need to define a frequency for this signal.<br/></br/>To help you triage and diagnose the problem, an analysis of the characteristics of the failures and related telemetry is provided with the detection. This feature works for any app, hosted in the cloud or on your own servers, that generates request or dependency telemetry - for example, if you have a worker role that calls <a class=\"ext-smartDetecor-link\" href=\\\"https://docs.microsoft.com/azure/application-insights/app-insights-api-custom-events-metrics#trackrequest\\\" target=\\\"_blank\\\">TrackRequest()</a> or <a class=\"ext-smartDetecor-link\" href=\\\"https://docs.microsoft.com/azure/application-insights/app-insights-api-custom-events-metrics#trackdependency\\\" target=\\\"_blank\\\">TrackDependency()</a>.<br/><br/><a class=\"ext-smartDetecor-link\" href=\\\"https://docs.microsoft.com/azure/azure-monitor/app/proactive-failure-diagnostics\\\" target=\\\"_blank\\\">Learn more about Failure Anomalies</a><br><br><b>A note about your data privacy:</b><br><br>The service is entirely automatic and only you can see these notifications. <a class=\\\"ext-smartDetecor-link\\\" href=\\\"https://docs.microsoft.com/en-us/azure/azure-monitor/app/data-retention-privacy\\\" target=\\\"_blank\\\">Read more about data privacy</a><br><br>Smart Alerts conditions can't be edited or added for now.",
-                    "supportedResourceTypes": [
-                        "ApplicationInsights"
-                    ]
-                },
-                "scope": [
-                    "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-                ],
-                "actionGroups": {
-                    "groupIds": [
-                        "[parameters('actiongroups_application_insights_smart_detection_externalid')]"
-                    ]
-                }
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/degradationindependencyduration')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "degradationindependencyduration",
-                    "DisplayName": "Degradation in dependency duration",
-                    "Description": "Smart Detection rules notify you of performance anomaly issues.",
-                    "HelpUrl": "https://docs.microsoft.com/en-us/azure/application-insights/app-insights-proactive-performance-diagnostics",
-                    "IsHidden": false,
-                    "IsEnabledByDefault": true,
-                    "IsInPreview": false,
-                    "SupportsEmailNotifications": true
-                },
-                "enabled": true,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/degradationinserverresponsetime')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "degradationinserverresponsetime",
-                    "DisplayName": "Degradation in server response time",
-                    "Description": "Smart Detection rules notify you of performance anomaly issues.",
-                    "HelpUrl": "https://docs.microsoft.com/en-us/azure/application-insights/app-insights-proactive-performance-diagnostics",
-                    "IsHidden": false,
-                    "IsEnabledByDefault": true,
-                    "IsInPreview": false,
-                    "SupportsEmailNotifications": true
-                },
-                "enabled": true,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/digestMailConfiguration')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "digestMailConfiguration",
-                    "DisplayName": "Digest Mail Configuration",
-                    "Description": "This rule describes the digest mail preferences",
-                    "HelpUrl": "www.homail.com",
-                    "IsHidden": true,
-                    "IsEnabledByDefault": true,
-                    "IsInPreview": false,
-                    "SupportsEmailNotifications": true
-                },
-                "enabled": true,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/extension_billingdatavolumedailyspikeextension')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "extension_billingdatavolumedailyspikeextension",
-                    "DisplayName": "Abnormal rise in daily data volume (preview)",
-                    "Description": "This detection rule automatically analyzes the billing data generated by your application, and can warn you about an unusual increase in your application's billing costs",
-                    "HelpUrl": "https://github.com/Microsoft/ApplicationInsights-Home/tree/master/SmartDetection/billing-data-volume-daily-spike.md",
-                    "IsHidden": false,
-                    "IsEnabledByDefault": true,
-                    "IsInPreview": true,
-                    "SupportsEmailNotifications": false
-                },
-                "enabled": true,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/extension_canaryextension')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "extension_canaryextension",
-                    "DisplayName": "Canary extension",
-                    "Description": "Canary extension",
-                    "HelpUrl": "https://github.com/Microsoft/ApplicationInsights-Home/blob/master/SmartDetection/",
-                    "IsHidden": true,
-                    "IsEnabledByDefault": true,
-                    "IsInPreview": true,
-                    "SupportsEmailNotifications": false
-                },
-                "enabled": true,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/extension_exceptionchangeextension')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "extension_exceptionchangeextension",
-                    "DisplayName": "Abnormal rise in exception volume (preview)",
-                    "Description": "This detection rule automatically analyzes the exceptions thrown in your application, and can warn you about unusual patterns in your exception telemetry.",
-                    "HelpUrl": "https://github.com/Microsoft/ApplicationInsights-Home/blob/master/SmartDetection/abnormal-rise-in-exception-volume.md",
-                    "IsHidden": false,
-                    "IsEnabledByDefault": true,
-                    "IsInPreview": true,
-                    "SupportsEmailNotifications": false
-                },
-                "enabled": true,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/extension_memoryleakextension')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "extension_memoryleakextension",
-                    "DisplayName": "Potential memory leak detected (preview)",
-                    "Description": "This detection rule automatically analyzes the memory consumption of each process in your application, and can warn you about potential memory leaks or increased memory consumption.",
-                    "HelpUrl": "https://github.com/Microsoft/ApplicationInsights-Home/tree/master/SmartDetection/memory-leak.md",
-                    "IsHidden": false,
-                    "IsEnabledByDefault": true,
-                    "IsInPreview": true,
-                    "SupportsEmailNotifications": false
-                },
-                "enabled": true,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/extension_securityextensionspackage')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "extension_securityextensionspackage",
-                    "DisplayName": "Potential security issue detected (preview)",
-                    "Description": "This detection rule automatically analyzes the telemetry generated by your application and detects potential security issues.",
-                    "HelpUrl": "https://github.com/Microsoft/ApplicationInsights-Home/blob/master/SmartDetection/application-security-detection-pack.md",
-                    "IsHidden": false,
-                    "IsEnabledByDefault": true,
-                    "IsInPreview": true,
-                    "SupportsEmailNotifications": false
-                },
-                "enabled": true,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/extension_traceseveritydetector')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "extension_traceseveritydetector",
-                    "DisplayName": "Degradation in trace severity ratio (preview)",
-                    "Description": "This detection rule automatically analyzes the trace logs emitted from your application, and can warn you about unusual patterns in the severity of your trace telemetry.",
-                    "HelpUrl": "https://github.com/Microsoft/ApplicationInsights-Home/blob/master/SmartDetection/degradation-in-trace-severity-ratio.md",
-                    "IsHidden": false,
-                    "IsEnabledByDefault": true,
-                    "IsInPreview": true,
-                    "SupportsEmailNotifications": false
-                },
-                "enabled": true,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/longdependencyduration')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "longdependencyduration",
-                    "DisplayName": "Long dependency duration",
-                    "Description": "Smart Detection rules notify you of performance anomaly issues.",
-                    "HelpUrl": "https://docs.microsoft.com/en-us/azure/application-insights/app-insights-proactive-performance-diagnostics",
-                    "IsHidden": false,
-                    "IsEnabledByDefault": true,
-                    "IsInPreview": false,
-                    "SupportsEmailNotifications": true
-                },
-                "enabled": true,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/migrationToAlertRulesCompleted')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "migrationToAlertRulesCompleted",
-                    "DisplayName": "Migration To Alert Rules Completed",
-                    "Description": "A configuration that controls the migration state of Smart Detection to Smart Alerts",
-                    "HelpUrl": "https://docs.microsoft.com/en-us/azure/application-insights/app-insights-proactive-performance-diagnostics",
-                    "IsHidden": true,
-                    "IsEnabledByDefault": false,
-                    "IsInPreview": true,
-                    "SupportsEmailNotifications": false
-                },
-                "enabled": false,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/slowpageloadtime')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "slowpageloadtime",
-                    "DisplayName": "Slow page load time",
-                    "Description": "Smart Detection rules notify you of performance anomaly issues.",
-                    "HelpUrl": "https://docs.microsoft.com/en-us/azure/application-insights/app-insights-proactive-performance-diagnostics",
-                    "IsHidden": false,
-                    "IsEnabledByDefault": true,
-                    "IsInPreview": false,
-                    "SupportsEmailNotifications": true
-                },
-                "enabled": true,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "microsoft.insights/components/ProactiveDetectionConfigs",
-            "apiVersion": "2018-05-01-preview",
-            "name": "[concat(parameters('components_tremblaypetstoreai_name'), '/slowserverresponsetime')]",
-            "location": "eastus",
-            "dependsOn": [
-                "[resourceId('microsoft.insights/components', parameters('components_tremblaypetstoreai_name'))]"
-            ],
-            "properties": {
-                "ruleDefinitions": {
-                    "Name": "slowserverresponsetime",
-                    "DisplayName": "Slow server response time",
-                    "Description": "Smart Detection rules notify you of performance anomaly issues.",
-                    "HelpUrl": "https://docs.microsoft.com/en-us/azure/application-insights/app-insights-proactive-performance-diagnostics",
-                    "IsHidden": false,
-                    "IsEnabledByDefault": true,
-                    "IsInPreview": false,
-                    "SupportsEmailNotifications": true
-                },
-                "enabled": true,
-                "sendEmailsToSubscriptionOwners": true,
-                "customEmails": []
-            }
-        },
-        {
-            "type": "Microsoft.Web/sites",
-            "apiVersion": "2018-11-01",
-            "name": "[parameters('sites_tremblaypetstore_name')]",
-            "location": "East US",
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/serverfarms', parameters('serverfarms_tremblaypetstoreasp_name'))]"
-            ],
-            "kind": "app,linux,container",
-            "properties": {
-                "enabled": true,
-                "hostNameSslStates": [
-                    {
-                        "name": "[concat(parameters('sites_tremblaypetstore_name'), '.azurewebsites.net')]",
-                        "sslState": "Disabled",
-                        "hostType": "Standard"
-                    },
-                    {
-                        "name": "[concat(parameters('sites_tremblaypetstore_name'), '.scm.azurewebsites.net')]",
-                        "sslState": "Disabled",
-                        "hostType": "Repository"
-                    }
-                ],
-                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('serverfarms_tremblaypetstoreasp_name'))]",
-                "reserved": true,
-                "isXenon": false,
-                "hyperV": false,
-                "siteConfig": {},
-                "scmSiteAlsoStopped": false,
-                "clientAffinityEnabled": false,
-                "clientCertEnabled": false,
-                "hostNamesDisabled": false,
-                "containerSize": 0,
-                "dailyMemoryTimeQuota": 0,
-                "httpsOnly": false,
-                "redundancyMode": "None"
-            }
-        },
-        {
-            "type": "Microsoft.Web/sites/config",
-            "apiVersion": "2018-11-01",
-            "name": "[concat(parameters('sites_tremblaypetstore_name'), '/web')]",
-            "location": "East US",
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', parameters('sites_tremblaypetstore_name'))]"
-            ],
-            "properties": {
-                "numberOfWorkers": 1,
-                "defaultDocuments": [
-                    "Default.htm",
-                    "Default.html",
-                    "Default.asp",
-                    "index.htm",
-                    "index.html",
-                    "iisstart.htm",
-                    "default.aspx",
-                    "index.php",
-                    "hostingstart.html"
-                ],
-                "netFrameworkVersion": "v4.0",
-                "linuxFxVersion": "DOCKER|mcr.microsoft.com/appsvc/staticsite:latest",
-                "requestTracingEnabled": false,
-                "remoteDebuggingEnabled": false,
-                "httpLoggingEnabled": false,
-                "logsDirectorySizeLimit": 35,
-                "detailedErrorLoggingEnabled": false,
-                "publishingUsername": "$tremblaypetstore",
-                "azureStorageAccounts": {},
-                "scmType": "None",
-                "use32BitWorkerProcess": true,
-                "webSocketsEnabled": false,
-                "alwaysOn": true,
-                "managedPipelineMode": "Integrated",
-                "virtualApplications": [
-                    {
-                        "virtualPath": "/",
-                        "physicalPath": "site\\wwwroot",
-                        "preloadEnabled": true
-                    }
-                ],
-                "loadBalancing": "LeastRequests",
-                "experiments": {
-                    "rampUpRules": []
-                },
-                "autoHealEnabled": false,
-                "localMySqlEnabled": false,
-                "ipSecurityRestrictions": [
-                    {
-                        "ipAddress": "Any",
-                        "action": "Allow",
-                        "priority": 1,
-                        "name": "Allow all",
-                        "description": "Allow all access"
-                    }
-                ],
-                "scmIpSecurityRestrictions": [
-                    {
-                        "ipAddress": "Any",
-                        "action": "Allow",
-                        "priority": 1,
-                        "name": "Allow all",
-                        "description": "Allow all access"
-                    }
-                ],
-                "scmIpSecurityRestrictionsUseMain": false,
-                "http20Enabled": false,
-                "minTlsVersion": "1.2",
-                "ftpsState": "AllAllowed",
-                "reservedInstanceCount": 0
-            }
-        },
-        {
-            "type": "Microsoft.Web/sites/hostNameBindings",
-            "apiVersion": "2018-11-01",
-            "name": "[concat(parameters('sites_tremblaypetstore_name'), '/', parameters('sites_tremblaypetstore_name'), '.azurewebsites.net')]",
-            "location": "East US",
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', parameters('sites_tremblaypetstore_name'))]"
-            ],
-            "properties": {
-                "siteName": "tremblaypetstore",
-                "hostNameType": "Verified"
-            }
+    "sku": {
+      "type": "string",
+      "defaultValue": "S1",
+      "metadata": {
+        "description": "The SKU of App Service Plan "
+      }
+    },
+    "linuxFxVersion": {
+      "type": "string",
+      "defaultValue": "php|7.4",
+      "metadata": {
+        "description": "The Runtime stack of current web app"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    }
+  },
+  "variables": {
+    "webAppPortalName": "[concat(parameters('webAppName'), '-webapp')]",
+    "appServicePlanName": "[concat('AppServicePlan-', parameters('webAppName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2020-06-01",
+      "name": "[variables('appServicePlanName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('sku')]"
+      },
+      "kind": "linux",
+      "properties": {
+        "reserved": true
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2020-06-01",
+      "name": "[variables('webAppPortalName')]",
+      "location": "[parameters('location')]",
+      "kind": "app",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+        "siteConfig": {
+          "linuxFxVersion": "[parameters('linuxFxVersion')]"
         }
-    ]
+      }
+    }
+  ]
 }
